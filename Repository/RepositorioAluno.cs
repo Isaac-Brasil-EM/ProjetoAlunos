@@ -4,6 +4,8 @@ using FirebirdSql.Data.FirebirdClient;
 using Repository;
 using System.Data;
 using System.Data.Common;
+using System.Globalization;
+using System.Linq.Expressions;
 using System.Runtime.InteropServices;
 
 
@@ -86,7 +88,7 @@ namespace Repository
 
         public override void Update(Aluno aluno)
         {
-            string query = "update TBALUNO set Nome= '" + aluno.Nome + "', Matricula='" + aluno.Matricula + "', Cpf='" + aluno.Cpf + "', Nascimento ='" + aluno.Nascimento.Date + "', Sexo ='" + (int)aluno.Sexo + "' where Matricula ='" + id + "' ";
+            string query = "update TBALUNO set Nome= '" + aluno.Nome + "', Matricula='" + aluno.Matricula + "', Cpf='" + aluno.Cpf + "', Nascimento ='" + aluno.Nascimento.Date + "', Sexo ='" + (int)aluno.Sexo + "' where Matricula ='" + aluno.Matricula + "' ";
             using (var con = new FbConnection(conn.ToString()))
             {
                 con.Open();
@@ -126,26 +128,29 @@ namespace Repository
                         {
                             while (reader.Read())
                             {
-                                int codigo = reader.GetInt32(1);
-                                string nome = reader.GetString(2);
-                                string cpf = reader.GetString(3);
-                                EnumeradorSexo sexo = (EnumeradorSexo) reader.GetInt32(4);
-                                DateTime nascimento = reader.GetDateTime(5);
+                                int codigo = reader.GetInt32(0);
+                                string nome = reader.GetString(1);
+                                string cpf = reader.GetString(2);
+                                EnumeradorSexo sexo = (EnumeradorSexo) reader.GetInt32(3);
+                                string nascimento = reader.GetInt32(4).ToString();
 
-                                list.Add(new Aluno { Matricula = codigo, Nome = nome, Cpf = cpf, Sexo = sexo, Nascimento = nascimento});
+                                list.Add(new Aluno { Matricula = codigo, Nome = nome, Cpf = cpf, Sexo = sexo, Nascimento = DateTime.ParseExact(nascimento,
+                                    "yyyyMMdd",
+                                    CultureInfo.InvariantCulture,
+                                    DateTimeStyles.None)
+                                });
                             }
                         }
                     }
-
                 }
             }
             return list;
         }
 
-        public override T Get(int Id)
+        public override IEnumerable<Aluno> Get(Expression<Func<Aluno, bool>> predicate)
         {
             List<Aluno> list = new List<Aluno>();
-            string query = $"select * from TBALUNO WHERE TBALUNO.MATRICULA = {id}";
+            string query = "select * from TBALUNO WHERE TBALUNO.MATRICULA";
             using (var con = new FbConnection(conn.ToString()))
             {
                 con.Open();
@@ -157,7 +162,7 @@ namespace Repository
                         command.Connection = con;
                         FbDataAdapter fbda = new(command);
                         DataTable dt = new DataTable();
-                        fbda.Fill(dt);
+                        
                         foreach (DataRow dr in dt.Rows)
                         {
                             list.Add(new Aluno { Matricula = Convert.ToInt32(dr[0]), Nome = Convert.ToString(dr[1]), Cpf = Convert.ToString(dr[2]), Nascimento = DateTime.Parse(dr[3].ToString()), Sexo = (EnumeradorSexo)Convert.ToInt32(dr[4]) });
@@ -166,7 +171,8 @@ namespace Repository
 
                 }
             }
-            return list.FirstOrDefault();
+            //return list.FirstOrDefault();[
+            return GetAll().Where(predicate.Compile()); 
         }
     }
 }

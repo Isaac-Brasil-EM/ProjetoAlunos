@@ -12,8 +12,8 @@
 
         public override string ToString()
         {
-
-            return "oi";
+            string stringFormatted = "Matricula: " + Matricula + " Nome: " + Nome + " Cpf: "  + Cpf + " Nascimento: " + Nascimento + " Sexo: " + Sexo; 
+            return stringFormatted;
         }
 
         public override bool Equals(object obj)
