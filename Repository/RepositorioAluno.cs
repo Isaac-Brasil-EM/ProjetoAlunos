@@ -1,12 +1,9 @@
 ﻿
 using Domain;
 using FirebirdSql.Data.FirebirdClient;
-using Repository;
 using System.Data;
-using System.Data.Common;
 using System.Globalization;
 using System.Linq.Expressions;
-using System.Runtime.InteropServices;
 
 
 namespace Repository
@@ -20,6 +17,9 @@ namespace Repository
         private static int Port = 3054;
         private static string Dialect = "3";
         private static string Charset = FbCharset.None.ToString();
+
+        private int _nextId = 1;
+
 
         FbConnectionStringBuilder conn = new FbConnectionStringBuilder()
         {
@@ -39,15 +39,11 @@ namespace Repository
             return Get(aluno => aluno.Nome.ToLower().Contains(parteDoNome)).ToList();
         }
 
-        /*aluno.Matricula = id;
-        var dt = CONNECTAR.RetornoTabela($"SELECT * FROM TBALUNO WHERE TBALUNO.MATRICULA = {id}");
-        List<Aluno> Listar_alunos = Aluno.ListarTabela(dt);
-        return Listar_alunos.FirstOrDefault();
-        return aluno;*/
-
         public override void Add(Aluno aluno)
         {
-            string query = "insert into TBALUNO values('" + aluno.Matricula + "','" + aluno.Nome + "','" + aluno.Cpf + "'," + aluno.Nascimento + ",'" + (int)aluno.Sexo + "')";
+            aluno.Matricula = 19;
+            string queryValidKey = "Select matricula from TBALUNO";
+            string query = "insert into TBALUNO values('" + aluno.Matricula + "','" + aluno.Nome + "','" + aluno.Cpf + "'," + (int)aluno.Sexo  + ",'" + aluno.Nascimento.ToString("yyyyMMdd") + "')";
             using (var con = new FbConnection(conn.ToString()))
             {
                 con.Open();
@@ -61,6 +57,7 @@ namespace Repository
                             con.Open();
                         int i = command.ExecuteNonQuery();
                     }
+                    transaction.Commit();
                 }
             }
         }
@@ -85,10 +82,10 @@ namespace Repository
                 }
             }
         }
-
+        
         public override void Update(Aluno aluno)
         {
-            string query = "update TBALUNO set Nome= '" + aluno.Nome + "', Matricula='" + aluno.Matricula + "', Cpf='" + aluno.Cpf + "', Nascimento ='" + aluno.Nascimento.Date + "', Sexo ='" + (int)aluno.Sexo + "' where Matricula ='" + aluno.Matricula + "' ";
+            string query = "update TBALUNO set Nome= '" + aluno.Nome + "', Matricula='" + aluno.Matricula + "', Cpf='" + aluno.Cpf + "', Nascimento ='" + aluno.Nascimento.ToString("yyyyMMdd") + "', Sexo ='" + (int)aluno.Sexo + "' where Matricula ='" + aluno.Matricula + "' ";
             using (var con = new FbConnection(conn.ToString()))
             {
                 con.Open();
@@ -134,6 +131,8 @@ namespace Repository
                                 EnumeradorSexo sexo = (EnumeradorSexo) reader.GetInt32(3);
                                 string nascimento = reader.GetInt32(4).ToString();
 
+
+                                //trocar o nascimento aqui para um parse de int para date
                                 list.Add(new Aluno { Matricula = codigo, Nome = nome, Cpf = cpf, Sexo = sexo, Nascimento = DateTime.ParseExact(nascimento,
                                     "yyyyMMdd",
                                     CultureInfo.InvariantCulture,
