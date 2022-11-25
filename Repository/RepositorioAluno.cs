@@ -78,6 +78,7 @@ namespace Repository
                             con.Open();
                         int i = command.ExecuteNonQuery();
                     }
+                    //transaction.Commit();
 
                 }
             }
@@ -89,8 +90,6 @@ namespace Repository
             using (var con = new FbConnection(conn.ToString()))
             {
                 con.Open();
-
-
                 using (var transaction = con.BeginTransaction())
                 {
 
@@ -102,6 +101,7 @@ namespace Repository
                             con.Open();
                         int i = command.ExecuteNonQuery();
                     }
+                    transaction.Commit();
 
                 }
             }
