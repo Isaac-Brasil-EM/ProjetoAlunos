@@ -41,7 +41,7 @@ namespace Repository
 
         public override void Add(Aluno aluno)
         {
-            aluno.Matricula = 19;
+
             string queryValidKey = "Select matricula from TBALUNO";
             string query = "insert into TBALUNO values('" + aluno.Matricula + "','" + aluno.Nome + "','" + aluno.Cpf + "'," + (int)aluno.Sexo  + ",'" + aluno.Nascimento.ToString("yyyyMMdd") + "')";
             using (var con = new FbConnection(conn.ToString()))
