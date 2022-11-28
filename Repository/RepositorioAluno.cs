@@ -18,7 +18,6 @@ namespace Repository
         private static string Dialect = "3";
         private static string Charset = FbCharset.None.ToString();
 
-        private int _nextId = 1;
 
 
         FbConnectionStringBuilder conn = new FbConnectionStringBuilder()
@@ -78,7 +77,7 @@ namespace Repository
                             con.Open();
                         int i = command.ExecuteNonQuery();
                     }
-                    //transaction.Commit();
+                    transaction.Commit();
 
                 }
             }
@@ -131,8 +130,6 @@ namespace Repository
                                 EnumeradorSexo sexo = (EnumeradorSexo) reader.GetInt32(3);
                                 string nascimento = reader.GetInt32(4).ToString();
 
-
-                                //trocar o nascimento aqui para um parse de int para date
                                 list.Add(new Aluno { Matricula = codigo, Nome = nome, Cpf = cpf, Sexo = sexo, Nascimento = DateTime.ParseExact(nascimento,
                                     "yyyyMMdd",
                                     CultureInfo.InvariantCulture,
