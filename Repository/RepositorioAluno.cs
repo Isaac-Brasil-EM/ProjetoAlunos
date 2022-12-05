@@ -1,9 +1,11 @@
 ﻿
 using Domain;
 using FirebirdSql.Data.FirebirdClient;
+using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
 using System.Linq.Expressions;
+using System.Reflection.PortableExecutable;
 
 
 namespace Repository
@@ -18,9 +20,7 @@ namespace Repository
         private static string Dialect = "3";
         private static string Charset = FbCharset.None.ToString();
 
-
-
-        FbConnectionStringBuilder conn = new FbConnectionStringBuilder()
+        readonly FbConnectionStringBuilder conn = new()
         {
             Port = Port,
             Password = Password,
@@ -29,20 +29,64 @@ namespace Repository
             Charset = Charset,
 
         };
+
         public Aluno GetByMatricula(int matricula)
         {
-            return Get(aluno => aluno.Matricula == matricula).FirstOrDefault();
+            List<Aluno> list = new();
+            string query = "SELECT * FROM TBALUNO WHERE MATRICULA LIKE'" + matricula + "'";
+            using (var con = new FbConnection(conn.ToString()))
+            {
+                con.Open();
+                using (var transaction = con.BeginTransaction())
+                {
+                    using (var command = new FbCommand(query, con, transaction))
+                    {
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                int codigo = reader.GetInt32(0);
+                                string nome = reader.GetString(1);
+                                string cpf = reader.GetString(2);
+                                EnumeradorSexo sexo = (EnumeradorSexo)reader.GetInt32(3);
+                                string nascimento = reader.GetInt32(4).ToString();
+
+                                list.Add(new Aluno
+                                {
+                                    Matricula = codigo,
+                                    Nome = nome,
+                                    Cpf = cpf,
+                                    Sexo = sexo,
+                                    Nascimento = DateTime.ParseExact(nascimento,
+                                    "yyyyMMdd",
+                                    CultureInfo.InvariantCulture,
+                                    DateTimeStyles.None)
+                                });
+                            }
+                        }
+                    }
+                    transaction.Commit();
+                }
+            }
+            return list.FirstOrDefault();
         }
+
+        /*  public Aluno GetByMatricula(int matricula)
+          {
+               return Get(aluno => aluno.Matricula == matricula).FirstOrDefault();
+          }*/
+
         public IEnumerable<Aluno> GetByContendoNoNome(string parteDoNome)
         {
+
             return Get(aluno => aluno.Nome.ToLower().Contains(parteDoNome)).ToList();
+
         }
+
 
         public override void Add(Aluno aluno)
         {
-
-            string queryValidKey = "Select matricula from TBALUNO";
-            string query = "insert into TBALUNO values('" + aluno.Matricula + "','" + aluno.Nome + "','" + aluno.Cpf + "'," + (int)aluno.Sexo  + ",'" + aluno.Nascimento.ToString("yyyyMMdd") + "')";
+            string query = "insert into TBALUNO values('" + aluno.Matricula + "','" + aluno.Nome.ToUpper() + "','" + aluno.Cpf + "'," + (int)aluno.Sexo + ",'" + aluno.Nascimento.ToString("yyyyMMdd") + "')";
             using (var con = new FbConnection(conn.ToString()))
             {
                 con.Open();
@@ -54,7 +98,9 @@ namespace Repository
                         command.Connection = con;
                         if (con.State == ConnectionState.Closed)
                             con.Open();
+
                         int i = command.ExecuteNonQuery();
+
                     }
                     transaction.Commit();
                 }
@@ -82,10 +128,10 @@ namespace Repository
                 }
             }
         }
-        
+
         public override void Update(Aluno aluno)
         {
-            string query = "update TBALUNO set Nome= '" + aluno.Nome + "', Matricula='" + aluno.Matricula + "', Cpf='" + aluno.Cpf + "', Nascimento ='" + aluno.Nascimento.ToString("yyyyMMdd") + "', Sexo ='" + (int)aluno.Sexo + "' where Matricula ='" + aluno.Matricula + "' ";
+            string query = "update TBALUNO set Nome= '" + aluno.Nome.ToUpper() + "', Matricula='" + aluno.Matricula + "', Cpf='" + aluno.Cpf + "', Nascimento ='" + aluno.Nascimento.ToString("yyyyMMdd") + "', Sexo ='" + (int)aluno.Sexo + "' where Matricula ='" + aluno.Matricula + "' ";
             using (var con = new FbConnection(conn.ToString()))
             {
                 con.Open();
@@ -108,7 +154,7 @@ namespace Repository
 
         public override IEnumerable<Aluno> GetAll()
         {
-            List<Aluno> list = new List<Aluno>();
+            List<Aluno> list = new();
             string query = "Select * from TBALUNO ";
             using (var con = new FbConnection(conn.ToString()))
             {
@@ -127,10 +173,16 @@ namespace Repository
                                 int codigo = reader.GetInt32(0);
                                 string nome = reader.GetString(1);
                                 string cpf = reader.GetString(2);
-                                EnumeradorSexo sexo = (EnumeradorSexo) reader.GetInt32(3);
+                                EnumeradorSexo sexo = (EnumeradorSexo)reader.GetInt32(3);
                                 string nascimento = reader.GetInt32(4).ToString();
 
-                                list.Add(new Aluno { Matricula = codigo, Nome = nome, Cpf = cpf, Sexo = sexo, Nascimento = DateTime.ParseExact(nascimento,
+                                list.Add(new Aluno
+                                {
+                                    Matricula = codigo,
+                                    Nome = nome,
+                                    Cpf = cpf,
+                                    Sexo = sexo,
+                                    Nascimento = DateTime.ParseExact(nascimento,
                                     "yyyyMMdd",
                                     CultureInfo.InvariantCulture,
                                     DateTimeStyles.None)
@@ -145,30 +197,7 @@ namespace Repository
 
         public override IEnumerable<Aluno> Get(Expression<Func<Aluno, bool>> predicate)
         {
-            List<Aluno> list = new List<Aluno>();
-            string query = "select * from TBALUNO WHERE TBALUNO.MATRICULA";
-            using (var con = new FbConnection(conn.ToString()))
-            {
-                con.Open();
-                using (var transaction = con.BeginTransaction())
-                {
-
-                    using (var command = new FbCommand(query, con, transaction))
-                    {
-                        command.Connection = con;
-                        FbDataAdapter fbda = new(command);
-                        DataTable dt = new DataTable();
-                        
-                        foreach (DataRow dr in dt.Rows)
-                        {
-                            list.Add(new Aluno { Matricula = Convert.ToInt32(dr[0]), Nome = Convert.ToString(dr[1]), Cpf = Convert.ToString(dr[2]), Nascimento = DateTime.Parse(dr[3].ToString()), Sexo = (EnumeradorSexo)Convert.ToInt32(dr[4]) });
-                        }
-                    }
-
-                }
-            }
-            //return list.FirstOrDefault();[
-            return GetAll().Where(predicate.Compile()); 
+            return GetAll().Where(predicate.Compile());
         }
     }
 }

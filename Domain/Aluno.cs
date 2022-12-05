@@ -8,8 +8,6 @@
         public DateTime Nascimento { get; set; }
         public EnumeradorSexo Sexo { get; set; }
 
-
-
         public override string ToString()
         {
             string stringFormatted = "Matricula: " + Matricula + " Nome: " + Nome + " Cpf: "  + Cpf + " Nascimento: " + Nascimento + " Sexo: " + Sexo; 
@@ -18,7 +16,7 @@
 
         public override bool Equals(object obj)
         {
-            var item = obj as Aluno;
+            Aluno item = obj as Aluno;
             if (item == null)
             {
                 return false;
@@ -29,7 +27,7 @@
 
         public override int GetHashCode()
         {
-            return base.GetHashCode();
+            return Matricula.GetHashCode();
         }
 
 
